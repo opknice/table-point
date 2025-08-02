@@ -75,6 +75,11 @@
     th {
       background: #eee;
     }
+    td input[type="number"] {
+      width: 50px;
+      padding: 4px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -127,7 +132,7 @@
 
     let teams = [];
 
-    // 3. ฟังค่าแบบเรียลไทม์ + ตั้งโลโก้อัตโนมัติ
+    // 3. ฟังข้อมูลเรียลไทม์ + ตั้งโลโก้อัตโนมัติ
     teamsRef.on("value", snapshot => {
       const data = snapshot.val() || {};
       teams = Object.keys(data).map(key => ({
@@ -139,7 +144,6 @@
         loss: data[key].loss
       }));
 
-      // ถ้าไม่มีโลโก้ในฐานข้อมูล ให้ตั้งเป็น A1.png, A2.png, ...
       teams.forEach((team, idx) => {
         if (!team.logo || team.logo.trim() === "") {
           const defaultLogo = `A${idx + 1}.png`;
@@ -167,7 +171,7 @@
       await teamsRef.remove();
     }
 
-    // 6. แก้ไขเมื่อ input เปลี่ยน
+    // 6. อัปเดตเมื่อแก้ไขในทุกฟอร์ม
     function handleInputChange(e) {
       const id    = e.target.dataset.id;
       const field = e.target.dataset.field;
@@ -180,10 +184,14 @@
     // 7. ลบทีมตาม id
     function handleDeleteTeam(e) {
       const id = e.target.dataset.id;
+      // แสดงข้อความยืนยัน
+      if (!confirm("ต้องการลบทีมนี้หรือไม่?")) {
+        return;  // ถ้าเลือกยกเลิก ก็หยุดการทำงานตรงนี้
+      }
       teamsRef.child(id).remove();
     }
 
-    // 8. แสดงฟอร์มกรอกข้อมูลทีม
+    // 8. แสดงฟอร์มกรอกข้อมูลทีม (สำหรับแก้ชื่อและโลโก้)
     function renderTeamInputs() {
       const container = document.getElementById("teamInputsContainer");
       container.innerHTML = "";
@@ -193,40 +201,20 @@
         row.className = "team-row";
         row.innerHTML = `
           <span class="team-name">${team.name}</span>
-          <label>
-            โลโก้:
-            <input type="text" class="logo-input"
-                   placeholder="filename.png"
-                   value="${team.logo}"
-                   data-id="${team.id}" data-field="logo" />
-          </label>
-          <span class="note">*วางไฟล์ในโฟลเดอร์ logos/</span>
-          <label>ชนะ:
-            <input type="number" min="0" value="${team.win}"
-                   data-id="${team.id}" data-field="win" />
-          </label>
-          <label>เสมอ:
-            <input type="number" min="0" value="${team.draw}"
-                   data-id="${team.id}" data-field="draw" />
-          </label>
-          <label>แพ้:
-            <input type="number" min="0" value="${team.loss}"
-                   data-id="${team.id}" data-field="loss" />
-          </label>
+
+          
           <button class="delete" data-id="${team.id}">❌ ลบ</button>
         `;
         container.appendChild(row);
       });
 
-      container.querySelectorAll("input").forEach(el =>
-        el.addEventListener("input", handleInputChange)
-      );
-      container.querySelectorAll("button.delete").forEach(btn =>
-        btn.addEventListener("click", handleDeleteTeam)
-      );
+      container.querySelectorAll("input.logo-input")
+        .forEach(el => el.addEventListener("input", handleInputChange));
+      container.querySelectorAll("button.delete")
+        .forEach(btn => btn.addEventListener("click", handleDeleteTeam));
     }
 
-    // 9. แสดงตารางคะแนนพร้อมโลโก้
+    // 9. แสดงตารางคะแนนพร้อมแก้ไขคะแนนอินไลน์
     function renderTable() {
       const table = document.getElementById("leagueTable");
       const tbody = document.getElementById("tableBody");
@@ -237,7 +225,7 @@
         return;
       }
 
-      // จัดเรียงตามคะแนน
+      // เรียงตามคะแนน
       const sorted = [...teams].sort((a, b) => {
         const pa = a.win * 3 + a.draw;
         const pb = b.win * 3 + b.draw;
@@ -262,18 +250,31 @@
                  onerror="this.src='logos/${defaultLogo}'; this.onerror=null;">
           </td>
           <td>${team.name}</td>
-          <td>${team.win}</td>
-          <td>${team.draw}</td>
-          <td>${team.loss}</td>
+          <td>
+            <input type="number" min="0" value="${team.win}"
+                   data-id="${team.id}" data-field="win" />
+          </td>
+          <td>
+            <input type="number" min="0" value="${team.draw}"
+                   data-id="${team.id}" data-field="draw" />
+          </td>
+          <td>
+            <input type="number" min="0" value="${team.loss}"
+                   data-id="${team.id}" data-field="loss" />
+          </td>
           <td>${points}</td>
         `;
         tbody.appendChild(tr);
+
+        // ผูกอีเวนต์อินไลน์
+        tr.querySelectorAll("input[type='number']")
+          .forEach(input => input.addEventListener("input", handleInputChange));
       });
 
       table.style.display = "table";
     }
 
-    // 10. ผูกปุ่ม
+    // 10. ผูกปุ่ม add / clear
     document.getElementById("addTeamBtn")
             .addEventListener("click", addTeam);
     document.getElementById("clearAllBtn")
