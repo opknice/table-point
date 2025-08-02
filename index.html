@@ -5,34 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ตารางคะแนนฟุตบอล</title>
   <style>
-    /* ====== Background & Base Styles ====== */
+    /* ====== Root Variables ====== */
     :root {
       --row-color-odd:   71, 110, 236;
       --row-color-even: 169, 192, 255;
       --row-alpha: 0.1;
     }
 
+    /* ====== Fade-in ทั้งหน้า ====== */
     body {
       margin: 0;
       padding: 20px;
       background:
-        /* โลโก้ ตรงกลาง */
         url('images/logo.png') no-repeat center 20px,
-        /* พื้นหลังหลัก */
         url('images/bg.png') no-repeat center center fixed;
-      background-size:
-        /* กำหนดขนาดโลโก้ */
-        250px auto,
-        /* พื้นหลังหลัก ให้ cover */
-        cover;
+      background-size: 250px auto, cover;
       font-family: "Segoe UI", sans-serif;
       color: #ffffff;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+    }
+
+    body.loaded {
+      opacity: 1;
     }
 
     h1 {
       margin-bottom: 20px;
       text-align: center;
-      color: #ffffff;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     }
 
@@ -41,8 +41,8 @@
       width: 100%;
       margin: 0 auto;
       border-collapse: collapse;
-      background-color: transparent;      /* โปร่งใสเต็มที่ */
-      backdrop-filter: blur(4px);          /* กระจกฝ้า */
+      background-color: transparent;
+      backdrop-filter: blur(4px);
     }
 
     thead th {
@@ -50,9 +50,9 @@
       background: transparent;
       color: #ffffff;
       font-size: 1rem;
-      white-space: nowrap;
       text-align: center;
       vertical-align: middle;
+      white-space: nowrap;
     }
 
     th, td {
@@ -72,7 +72,6 @@
     }
 
     img.logo {
-      display: block;
       max-width: 32px;
       width: 100%;
       height: auto;
@@ -88,6 +87,26 @@
       background-color: rgba(var(--row-color-even), var(--row-alpha));
     }
 
+    /* ====== Slide-in ของแต่ละแถว ====== */
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #tableBody tr {
+      opacity: 0;
+      transform: translateY(20px);
+      --delay: 0s;
+      animation: slideInUp 0.5s ease-out forwards;
+      animation-delay: var(--delay);
+    }
+
     /* ====== No-data Placeholder ====== */
     .no-data td {
       color: #fff;
@@ -96,7 +115,16 @@
     }
 
     /* ====== Responsive ====== */
-    @media (max-width: 600px) {
+    @media (orientation: landscape) and (max-width: 600px) {
+      .team-cell span {
+        max-width: none;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+      }
+    }
+
+    @media (orientation: portrait) and (max-width: 600px) {
       .team-cell span {
         max-width: 10ch;
         white-space: nowrap;
@@ -108,7 +136,7 @@
 </head>
 
 <body>
-  <h1> </h1>
+  <h1><br></h1>
 
   <table id="leagueTable" style="display: none;">
     <thead>
@@ -126,18 +154,23 @@
 
   <table id="noDataTable" class="no-data" style="display: none;">
     <tbody>
-      <tr><td>ยังไม่มีข้อมูลทีม</td></tr>
+      <tr>
+        <td>ยังไม่มีข้อมูลทีม</td>
+      </tr>
     </tbody>
   </table>
 
-  <div id="lastUpdated" style="margin-top: 20px; text-align: center; color: #fff;"></div>
 
-  <!-- Firebase SDK (compat) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
   <script>
-    // 1. กำหนดค่า Firebase config (ปรับให้ตรงกับโปรเจกต์คุณ)
+    // เมื่อ DOM โหลดเสร็จเพิ่มคลาส loaded ให้ body
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
+
+    // Firebase config (ปรับเป็นของคุณ)
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -148,12 +181,12 @@
       appId: "YOUR_APP_ID"
     };
 
-    // 2. เริ่มต้น Firebase & Realtime Database
+    // เริ่มต้น Firebase
     firebase.initializeApp(firebaseConfig);
     const db       = firebase.database();
     const teamsRef = db.ref("teams");
 
-    // 3. ฟังข้อมูลแบบเรียลไทม์ แล้วเรนเดอร์ทุกครั้งที่เปลี่ยน
+    // ฟังข้อมูลเรียลไทม์
     teamsRef.on("value", snapshot => {
       const data     = snapshot.val() || {};
       const teamsArr = Object.keys(data).map(key => ({
@@ -161,36 +194,34 @@
         ...data[key]
       }));
       renderTable(teamsArr);
-      updateLastUpdated();
+      const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+
     });
 
-    // 4. เรนเดอร์ตาราง
+    // เรนเดอร์ตาราง พร้อมตั้ง delay ให้แต่ละแถว
     function renderTable(teams) {
       const table     = document.getElementById("leagueTable");
       const noDataTbl = document.getElementById("noDataTable");
       const tbody     = document.getElementById("tableBody");
 
-      // ไม่มีทีม
       if (!teams.length) {
-        table.style.display    = "none";
+        table.style.display     = "none";
         noDataTbl.style.display = "table";
         return;
       }
 
-      noDataTbl.style.display = "none";
-      table.style.display     = "table";
-      tbody.innerHTML         = "";
+      noDataTbl.style.display  = "none";
+      table.style.display      = "table";
+      tbody.innerHTML          = "";
 
       const isMobile = window.matchMedia("(max-width: 600px)").matches;
 
-      // จัดเรียงตามคะแนน
       const sorted = teams.slice().sort((a, b) => {
         const pa = a.win * 3 + a.draw;
         const pb = b.win * 3 + b.draw;
         return pb - pa;
       });
 
-      // สร้างแถวแต่ละทีม
       sorted.forEach((team, idx) => {
         let name = team.name;
         if (isMobile && name.length > 10) {
@@ -201,6 +232,7 @@
         const logoPath = team.logo ? `logos/${team.logo}` : "";
 
         const tr = document.createElement("tr");
+        tr.style.setProperty('--delay', `${idx * 0.1}s`);
         tr.innerHTML = `
           <td>${idx + 1}</td>
           <td class="team-cell">
@@ -218,21 +250,14 @@
       });
     }
 
-    // 5. อัปเดตเวลาล่าสุด
-    function updateLastUpdated() {
-      const now = new Date();
-      const formatted = now.toLocaleString('th-TH', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-      document.getElementById("lastUpdated")
-              .textContent = `อัปเดตล่าสุดเวลา: ${formatted}`;
-    }
+    // ป้องกันรีเฟรชซ้ำหลายครั้งเมื่อเปลี่ยน orientation
+    let hasReloaded = false;
+    window.addEventListener('orientationchange', () => {
+      if (!hasReloaded) {
+        hasReloaded = true;
+        setTimeout(() => window.location.reload(), 100);
+      }
+    });
   </script>
 </body>
 </html>
