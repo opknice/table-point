@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ระบบจัดการคะแนนฟุตบอล</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .controls, .team-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .controls input {
+      flex: 1;
+      padding: 6px;
+      font-size: 16px;
+    }
+    .team-row {
+      flex-wrap: wrap;
+    }
+    .team-row > * {
+      margin: 2px 0;
+    }
+    .team-name {
+      min-width: 120px;
+      font-weight: bold;
+    }
+    .team-row input {
+      width: 80px;
+      padding: 4px;
+      font-size: 14px;
+    }
+    .team-row input.logo-input {
+      flex: 1;
+      width: auto;
+      padding: 4px 8px;
+    }
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button.delete {
+      background: #f44336;
+    }
+    .note {
+      font-size: 0.85rem;
+      color: #555;
+      margin-top: -6px;
+      margin-bottom: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th {
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ระบบจัดการคะแนนฟุตบอล</h1>
+
+  <div class="controls">
+    <input type="text" id="teamNameInput" placeholder="ชื่อทีมใหม่" />
+    <button id="addTeamBtn">➕ เพิ่มทีม</button>
+    <button id="clearAllBtn">🗑️ ลบทีมทั้งหมด</button>
+  </div>
+
+  <div id="teamInputsContainer"></div>
+
+  <table id="leagueTable" style="display: none;">
+    <thead>
+      <tr>
+        <th>อันดับ</th>
+        <th>โลโก้</th>
+        <th>ชื่อทีม</th>
+        <th>ชนะ</th>
+        <th>เสมอ</th>
+        <th>แพ้</th>
+        <th>คะแนน</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <script>
+    // 1. กำหนดค่า Firebase config (ปรับให้ตรงกับโปรเจกต์คุณ)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://score-point-a4b6b-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    // 2. อ้างอิง Realtime Database
+    const db = firebase.database();
+    const teamsRef = db.ref("teams");
+
+    let teams = [];
+
+    // 3. ฟังค่าแบบเรียลไทม์ + ตั้งโลโก้อัตโนมัติ
+    teamsRef.on("value", snapshot => {
+      const data = snapshot.val() || {};
+      teams = Object.keys(data).map(key => ({
+        id: key,
+        name: data[key].name,
+        logo: data[key].logo,
+        win: data[key].win,
+        draw: data[key].draw,
+        loss: data[key].loss
+      }));
+
+      // ถ้าไม่มีโลโก้ในฐานข้อมูล ให้ตั้งเป็น A1.png, A2.png, ...
+      teams.forEach((team, idx) => {
+        if (!team.logo || team.logo.trim() === "") {
+          const defaultLogo = `A${idx + 1}.png`;
+          teamsRef.child(team.id).update({ logo: defaultLogo });
+          team.logo = defaultLogo;
+        }
+      });
+
+      renderTeamInputs();
+      renderTable();
+    });
+
+    // 4. เพิ่มทีม
+    async function addTeam() {
+      const input = document.getElementById("teamNameInput");
+      const name = input.value.trim();
+      if (!name) return alert("กรุณาใส่ชื่อทีม");
+      await teamsRef.push({ name, logo: "", win: 0, draw: 0, loss: 0 });
+      input.value = "";
+    }
+
+    // 5. ลบทุกทีม
+    async function clearAll() {
+      if (!confirm("ต้องการลบทุกทีมหรือไม่?")) return;
+      await teamsRef.remove();
+    }
+
+    // 6. แก้ไขเมื่อ input เปลี่ยน
+    function handleInputChange(e) {
+      const id    = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const val   = field === "logo"
+                    ? e.target.value
+                    : parseInt(e.target.value) || 0;
+      teamsRef.child(id).update({ [field]: val });
+    }
+
+    // 7. ลบทีมตาม id
+    function handleDeleteTeam(e) {
+      const id = e.target.dataset.id;
+      teamsRef.child(id).remove();
+    }
+
+    // 8. แสดงฟอร์มกรอกข้อมูลทีม
+    function renderTeamInputs() {
+      const container = document.getElementById("teamInputsContainer");
+      container.innerHTML = "";
+
+      teams.forEach(team => {
+        const row = document.createElement("div");
+        row.className = "team-row";
+        row.innerHTML = `
+          <span class="team-name">${team.name}</span>
+          <label>
+            โลโก้:
+            <input type="text" class="logo-input"
+                   placeholder="filename.png"
+                   value="${team.logo}"
+                   data-id="${team.id}" data-field="logo" />
+          </label>
+          <span class="note">*วางไฟล์ในโฟลเดอร์ logos/</span>
+          <label>ชนะ:
+            <input type="number" min="0" value="${team.win}"
+                   data-id="${team.id}" data-field="win" />
+          </label>
+          <label>เสมอ:
+            <input type="number" min="0" value="${team.draw}"
+                   data-id="${team.id}" data-field="draw" />
+          </label>
+          <label>แพ้:
+            <input type="number" min="0" value="${team.loss}"
+                   data-id="${team.id}" data-field="loss" />
+          </label>
+          <button class="delete" data-id="${team.id}">❌ ลบ</button>
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll("input").forEach(el =>
+        el.addEventListener("input", handleInputChange)
+      );
+      container.querySelectorAll("button.delete").forEach(btn =>
+        btn.addEventListener("click", handleDeleteTeam)
+      );
+    }
+
+    // 9. แสดงตารางคะแนนพร้อมโลโก้
+    function renderTable() {
+      const table = document.getElementById("leagueTable");
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      if (teams.length === 0) {
+        table.style.display = "none";
+        return;
+      }
+
+      // จัดเรียงตามคะแนน
+      const sorted = [...teams].sort((a, b) => {
+        const pa = a.win * 3 + a.draw;
+        const pb = b.win * 3 + b.draw;
+        return pb - pa;
+      });
+
+      sorted.forEach((team, i) => {
+        const points   = team.win * 3 + team.draw;
+        const defaultLogo = `A${i + 1}.png`;
+        const logoFile = team.logo && team.logo.trim() !== ""
+                         ? team.logo
+                         : defaultLogo;
+        const logoPath = `logos/${logoFile}`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>
+            <img src="${logoPath}"
+                 alt="${team.name}"
+                 style="width:32px;height:32px;"
+                 onerror="this.src='logos/${defaultLogo}'; this.onerror=null;">
+          </td>
+          <td>${team.name}</td>
+          <td>${team.win}</td>
+          <td>${team.draw}</td>
+          <td>${team.loss}</td>
+          <td>${points}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      table.style.display = "table";
+    }
+
+    // 10. ผูกปุ่ม
+    document.getElementById("addTeamBtn")
+            .addEventListener("click", addTeam);
+    document.getElementById("clearAllBtn")
+            .addEventListener("click", clearAll);
+  </script>
+</body>
+</html>
