@@ -10,91 +10,47 @@
       background: #f9f9f9;
       padding: 20px;
     }
-    h1 {
-      text-align: center;
-    }
+    h1 { text-align: center; }
+
     .controls, .team-row {
       display: flex;
       align-items: center;
       gap: 10px;
       margin: 10px 0;
     }
-    .controls input {
-      flex: 1;
-      padding: 6px;
-      font-size: 16px;
-    }
-    .team-row {
-      flex-wrap: wrap;
-    }
-    .team-row > * {
-      margin: 2px 0;
-    }
-    .team-name {
-      min-width: 120px;
-      font-weight: bold;
-    }
-    .team-row input {
-      width: 80px;
-      padding: 4px;
-      font-size: 14px;
-    }
-    .team-row input.logo-input {
-      flex: 1;
-      width: auto;
-      padding: 4px 8px;
-    }
-    button {
-      padding: 6px 12px;
-      cursor: pointer;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-    }
-    button.delete {
-      background: #f44336;
-    }
-    .note {
-      font-size: 0.85rem;
-      color: #555;
-      margin-top: -6px;
-      margin-bottom: 8px;
-    }
+    .controls input      { flex: 1; padding: 6px; font-size: 16px; }
+    .team-row            { flex-wrap: wrap; }
+    .team-row > *        { margin: 2px 0; }
+    .team-name           { min-width: 120px; font-weight: bold; }
+    .team-row input      { width: 80px; padding: 4px; font-size: 14px; }
+
+    button          { padding: 6px 12px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; }
+    button.delete   { background: #f44336; }
+
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background: white;
+      width: 100%; border-collapse: collapse; margin-top: 20px; background: white;
     }
-    th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
-      text-align: center;
-    }
-    th {
-      background: #eee;
-    }
-    td input[type="number"] {
-      width: 50px;
-      padding: 4px;
-      font-size: 14px;
-    }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
+    th     { background: #eee; }
+    td input[type="number"] { width: 60px; padding: 4px; font-size: 14px; }
   </style>
 </head>
 <body>
 
   <h1>ระบบจัดการคะแนนฟุตบอล</h1>
 
+  <!-- ----------- เพิ่ม / ลบ ทั้งหมด ----------- -->
   <div class="controls">
     <input type="text" id="teamNameInput" placeholder="ชื่อทีมใหม่" />
     <button id="addTeamBtn">➕ เพิ่มทีม</button>
     <button id="clearAllBtn">🗑️ ลบทีมทั้งหมด</button>
   </div>
 
+  <!-- ----------- ฟอร์มแก้ชื่อทีม ----------- -->
   <div id="teamInputsContainer"></div>
 
-  <table id="leagueTable" style="display: none;">
+  <!-- ----------- ตารางคะแนน ----------- -->
+  <table id="leagueTable" style="display:none;">
     <thead>
       <tr>
         <th>อันดับ</th>
@@ -103,52 +59,51 @@
         <th>ชนะ</th>
         <th>เสมอ</th>
         <th>แพ้</th>
+        <th>ได้</th>
+        <th>เสีย</th>
+        <th>ได้-เสีย</th>
         <th>คะแนน</th>
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
   </table>
 
-  <!-- Firebase SDK (compat) -->
+  <!-- ------------ Firebase SDK (compat) ------------ -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
   <script>
-    // 1. กำหนดค่า Firebase config (ปรับให้ตรงกับโปรเจกต์คุณ)
+    /* 1) ตั้งค่า Firebase -------------------------------------------------- */
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://score-point-a4b6b-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
+      apiKey:        "YOUR_API_KEY",
+      authDomain:    "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL:   "https://score-point-a4b6b-default-rtdb.firebaseio.com",
+      projectId:     "YOUR_PROJECT_ID",
       storageBucket: "YOUR_PROJECT_ID.appspot.com",
       messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      appId:             "YOUR_APP_ID"
     };
     firebase.initializeApp(firebaseConfig);
 
-    // 2. อ้างอิง Realtime Database
-    const db = firebase.database();
+    /* 2) อ้างอิง Realtime DB --------------------------------------------- */
+    const db       = firebase.database();
     const teamsRef = db.ref("teams");
 
     let teams = [];
 
-    // 3. ฟังข้อมูลเรียลไทม์ + ตั้งโลโก้อัตโนมัติ
-    teamsRef.on("value", snapshot => {
-      const data = snapshot.val() || {};
+    /* 3) ดึงข้อมูล & ใส่โลโก้ default ------------------------------------ */
+    teamsRef.on("value", snap => {
+      const data = snap.val() || {};
       teams = Object.keys(data).map(key => ({
-        id: key,
-        name: data[key].name,
-        logo: data[key].logo,
-        win: data[key].win,
-        draw: data[key].draw,
-        loss: data[key].loss
+        id:   key,
+        ...data[key]   // name, logo, win, draw, loss, gf, ga
       }));
 
-      teams.forEach((team, idx) => {
-        if (!team.logo || team.logo.trim() === "") {
-          const defaultLogo = `A${idx + 1}.png`;
-          teamsRef.child(team.id).update({ logo: defaultLogo });
-          team.logo = defaultLogo;
+      teams.forEach((t, idx) => {
+        if (!t.logo || t.logo.trim() === "") {
+          const def = `A${idx + 1}.png`;
+          teamsRef.child(t.id).update({ logo: def });
+          t.logo = def;
         }
       });
 
@@ -156,132 +111,108 @@
       renderTable();
     });
 
-    // 4. เพิ่มทีม
+    /* 4) เพิ่มทีมใหม่ ------------------------------------------------------ */
     async function addTeam() {
-      const input = document.getElementById("teamNameInput");
-      const name = input.value.trim();
+      const inp = document.getElementById("teamNameInput");
+      const name = inp.value.trim();
       if (!name) return alert("กรุณาใส่ชื่อทีม");
-      await teamsRef.push({ name, logo: "", win: 0, draw: 0, loss: 0 });
-      input.value = "";
+      await teamsRef.push({
+        name, logo: "", win: 0, draw: 0, loss: 0,
+        gf: 0, ga: 0    // NEW
+      });
+      inp.value = "";
     }
 
-    // 5. ลบทุกทีม
+    /* 5) ล้างทุกทีม -------------------------------------------------------- */
     async function clearAll() {
-      if (!confirm("ต้องการลบทุกทีมหรือไม่?")) return;
-      await teamsRef.remove();
+      if (confirm("ต้องการลบทุกทีมหรือไม่?")) await teamsRef.remove();
     }
 
-    // 6. อัปเดตเมื่อแก้ไขในทุกฟอร์ม
+    /* 6) อัปเดตทุก input --------------------------------------------------- */
     function handleInputChange(e) {
       const id    = e.target.dataset.id;
       const field = e.target.dataset.field;
-      const val   = field === "logo"
-                    ? e.target.value
-                    : parseInt(e.target.value) || 0;
+      const val   = ["name","logo"].includes(field)
+                      ? e.target.value
+                      : parseInt(e.target.value) || 0;
       teamsRef.child(id).update({ [field]: val });
     }
 
-    // 7. ลบทีมตาม id
+    /* 7) ลบทีมเดียว -------------------------------------------------------- */
     function handleDeleteTeam(e) {
       const id = e.target.dataset.id;
-      // แสดงข้อความยืนยัน
-      if (!confirm("ต้องการลบทีมนี้หรือไม่?")) {
-        return;  // ถ้าเลือกยกเลิก ก็หยุดการทำงานตรงนี้
-      }
-      teamsRef.child(id).remove();
+      if (confirm("ต้องการลบทีมนี้หรือไม่?")) teamsRef.child(id).remove();
     }
 
-    // 8. แสดงฟอร์มกรอกข้อมูลทีม (สำหรับแก้ชื่อและโลโก้)
+    /* 8) ฟอร์มแก้ชื่อ ------------------------------------------------------ */
     function renderTeamInputs() {
-      const container = document.getElementById("teamInputsContainer");
-      container.innerHTML = "";
-
-      teams.forEach(team => {
+      const cont = document.getElementById("teamInputsContainer");
+      cont.innerHTML = "";
+      teams.forEach(t => {
         const row = document.createElement("div");
         row.className = "team-row";
         row.innerHTML = `
-          <span class="team-name">${team.name}</span>
-
-          
-          <button class="delete" data-id="${team.id}">❌ ลบ</button>
+          <span class="team-name">${t.name}</span>
+          <button class="delete" data-id="${t.id}">❌ ลบ</button>
         `;
-        container.appendChild(row);
+        cont.appendChild(row);
       });
-
-      container.querySelectorAll("input.logo-input")
-        .forEach(el => el.addEventListener("input", handleInputChange));
-      container.querySelectorAll("button.delete")
-        .forEach(btn => btn.addEventListener("click", handleDeleteTeam));
+      cont.querySelectorAll("button.delete")
+          .forEach(b => b.addEventListener("click", handleDeleteTeam));
     }
 
-    // 9. แสดงตารางคะแนนพร้อมแก้ไขคะแนนอินไลน์
+    /* 9) ตารางคะแนน -------------------------------------------------------- */
     function renderTable() {
       const table = document.getElementById("leagueTable");
-      const tbody = document.getElementById("tableBody");
-      tbody.innerHTML = "";
+      const body  = document.getElementById("tableBody");
+      body.innerHTML = "";
 
-      if (teams.length === 0) {
-        table.style.display = "none";
-        return;
-      }
+      if (teams.length === 0) { table.style.display = "none"; return; }
 
-      // เรียงตามคะแนน
-      const sorted = [...teams].sort((a, b) => {
-        const pa = a.win * 3 + a.draw;
-        const pb = b.win * 3 + b.draw;
-        return pb - pa;
+      /* ---- จัดอันดับ: คะแนน > GD > ได้ ---- */
+      const sorted = [...teams].sort((a,b) => {
+        const pa = a.win*3 + a.draw;
+        const pb = b.win*3 + b.draw;
+        const gda = (a.gf - a.ga);
+        const gdb = (b.gf - b.ga);
+        if (pb !== pa) return pb - pa;
+        if (gdb !== gda) return gdb - gda;
+        return b.gf - a.gf;
       });
 
-      sorted.forEach((team, i) => {
-        const points   = team.win * 3 + team.draw;
-        const defaultLogo = `A${i + 1}.png`;
-        const logoFile = team.logo && team.logo.trim() !== ""
-                         ? team.logo
-                         : defaultLogo;
-        const logoPath = `logos/${logoFile}`;
-
+      sorted.forEach((t,i) => {
+        const pts = t.win*3 + t.draw;
+        const gd  = t.gf - t.ga;
+        const defLogo = `A${i + 1}.png`;
+        const logo = t.logo && t.logo.trim() !== "" ? t.logo : defLogo;
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${i + 1}</td>
-          <td>
-            <img src="${logoPath}"
-                 alt="${team.name}"
-                 style="width:32px;height:32px;"
-                 onerror="this.src='logos/${defaultLogo}'; this.onerror=null;">
-          </td>
-          <td>${team.name}</td>
-          <td>
-            <input type="number" min="0" value="${team.win}"
-                   data-id="${team.id}" data-field="win" />
-          </td>
-          <td>
-            <input type="number" min="0" value="${team.draw}"
-                   data-id="${team.id}" data-field="draw" />
-          </td>
-          <td>
-            <input type="number" min="0" value="${team.loss}"
-                   data-id="${team.id}" data-field="loss" />
-          </td>
-          <td>${points}</td>
-        `;
-        tbody.appendChild(tr);
+          <td>${i+1}</td>
+          <td><img src="logos/${logo}" alt="${t.name}" style="width:32px;height:32px;"
+                   onerror="this.src='logos/${defLogo}'; this.onerror=null;"></td>
+          <td>${t.name}</td>
 
-        // ผูกอีเวนต์อินไลน์
+          <td><input type="number" min="0" value="${t.win}"  data-id="${t.id}" data-field="win" /></td>
+          <td><input type="number" min="0" value="${t.draw}" data-id="${t.id}" data-field="draw" /></td>
+          <td><input type="number" min="0" value="${t.loss}" data-id="${t.id}" data-field="loss" /></td>
+
+          <td><input type="number" min="0" value="${t.gf}"  data-id="${t.id}" data-field="gf" /></td>
+          <td><input type="number" min="0" value="${t.ga}"  data-id="${t.id}" data-field="ga" /></td>
+          <td>${gd}</td>
+          <td>${pts}</td>
+        `;
+        body.appendChild(tr);
         tr.querySelectorAll("input[type='number']")
-          .forEach(input => input.addEventListener("input", handleInputChange));
+           .forEach(inp => inp.addEventListener("input", handleInputChange));
       });
 
       table.style.display = "table";
     }
 
-    // 10. ผูกปุ่ม add / clear
-    document.getElementById("addTeamBtn")
-            .addEventListener("click", addTeam);
-    document.getElementById("clearAllBtn")
-            .addEventListener("click", clearAll);
+    /* 10) bind ปุ่ม -------------------------------------------------------- */
+    document.getElementById("addTeamBtn").addEventListener("click", addTeam);
+    document.getElementById("clearAllBtn").addEventListener("click", clearAll);
   </script>
-
-
 
 </body>
 </html>

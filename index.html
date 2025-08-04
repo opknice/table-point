@@ -1,263 +1,167 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ตารางคะแนนฟุตบอล</title>
-  <style>
-    /* ====== Root Variables ====== */
-    :root {
-      --row-color-odd:   71, 110, 236;
-      --row-color-even: 169, 192, 255;
-      --row-alpha: 0.1;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1024">   <!-- ⬅ บังคับกว้าง 1024px -->
+<title>ตารางคะแนนฟุตบอล (Desktop-only View)</title>
 
-    /* ====== Fade-in ทั้งหน้า ====== */
-    body {
-      margin: 0;
-      padding: 20px;
-      background:
-        url('images/logo.png') no-repeat center 20px,
-        url('images/bg.png') no-repeat center center fixed;
-      background-size: 250px auto, cover;
-      font-family: "Segoe UI", sans-serif;
-      color: #ffffff;
-      opacity: 0;
-      transition: opacity 0.8s ease-in-out;
-    }
+<!-- ===== Base Style (no media-queries) ===== -->
+<style>
+/* ---------- Root variables ---------- */
+:root{
+  --row-color-odd:71,110,236;
+  --row-color-even:169,192,255;
+  --row-alpha:0.10;
+}
 
-    body.loaded {
-      opacity: 1;
-    }
+/* ---------- Fade-in ---------- */
+body{
+  margin:0;padding:20px;
+  background:url('images/logo.png') no-repeat center 20px,
+             url('images/bg.png')   no-repeat center center fixed;
+  background-size:250px auto,cover;
+  font-family:"Segoe UI",sans-serif;
+  color:#fff;
+  opacity:0;
+  transition:opacity .8s ease-in-out;
+}
+body.loaded{opacity:1;}
 
-    h1 {
-      margin-bottom: 20px;
-      text-align: center;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-    }
+/* ---------- Headings ---------- */
+h1{margin:40px 0 20px;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.6);}
 
-    /* ====== Table Styles ====== */
-    table {
-      width: 100%;
-      margin: 0 auto;
-      border-collapse: collapse;
-      background-color: transparent;
-      backdrop-filter: blur(4px);
-    }
+/* ---------- Table ---------- */
+table{width:80%;margin:0 auto;border-collapse:collapse;background:transparent;backdrop-filter:blur(4px);}
+th,td{padding:10px;border:none;text-align:center;vertical-align:middle;}
+thead th{padding:6px 8px;background:transparent;color:#fff;font-size:1rem;white-space:nowrap;}
 
-    thead th {
-      padding: 6px 8px;
-      background: transparent;
-      color: #ffffff;
-      font-size: 1rem;
-      text-align: center;
-      vertical-align: middle;
-      white-space: nowrap;
-    }
+td.team-cell{display:flex;align-items:center;gap:8px;padding-left:0;text-align:left;}
+img.logo{max-width:32px;width:100%;height:auto;object-fit:contain;}
 
-    th, td {
-      padding: 10px;
-      border: none;
-      text-align: center;
-      vertical-align: middle;
-    }
+/* ---------- Zebra ---------- */
+#tableBody tr:nth-child(odd){background:rgba(var(--row-color-odd),var(--row-alpha));}
+#tableBody tr:nth-child(even){background:rgba(var(--row-color-even),var(--row-alpha));}
 
-    td.team-cell {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 8px;
-      padding-left: 0;
-      text-align: left;
-    }
+/* ---------- Slide-in ---------- */
+@keyframes slideInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+#tableBody tr{opacity:0;transform:translateY(20px);--delay:0s;
+              animation:slideInUp .5s ease-out forwards;animation-delay:var(--delay);}
 
-    img.logo {
-      max-width: 32px;
-      width: 100%;
-      height: auto;
-      object-fit: contain;
-    }
-
-    /* ====== Zebra Striping ====== */
-    #tableBody tr:nth-child(odd) {
-      background-color: rgba(var(--row-color-odd), var(--row-alpha));
-    }
-
-    #tableBody tr:nth-child(even) {
-      background-color: rgba(var(--row-color-even), var(--row-alpha));
-    }
-
-    /* ====== Slide-in ของแต่ละแถว ====== */
-    @keyframes slideInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    #tableBody tr {
-      opacity: 0;
-      transform: translateY(20px);
-      --delay: 0s;
-      animation: slideInUp 0.5s ease-out forwards;
-      animation-delay: var(--delay);
-    }
-
-    /* ====== No-data Placeholder ====== */
-    .no-data td {
-      color: #fff;
-      font-size: 1.1rem;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-    }
-
-    /* ====== Responsive ====== */
-    @media (orientation: landscape) and (max-width: 600px) {
-      .team-cell span {
-        max-width: none;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-      }
-    }
-
-    @media (orientation: portrait) and (max-width: 600px) {
-      .team-cell span {
-        max-width: 10ch;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
-  </style>
+/* ---------- No-data ---------- */
+.no-data td{color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+</style>
 </head>
 
 <body>
-  <h1><br></h1>
+<h1><br></h1>
 
-  <table id="leagueTable" style="display: none;">
-    <thead>
-      <tr>
-        <th>อันดับ</th>
-        <th>ทีม</th>
-        <th>ชนะ</th>
-        <th>เสมอ</th>
-        <th>แพ้</th>
-        <th>คะแนน</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+<!-- ===== ตารางคะแนน ===== -->
+<table id="leagueTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>อันดับ</th><th>ทีม</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th>
+      <th>ได้</th><th>เสีย</th><th>ได้-เสีย</th><th>คะแนน</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
 
-  <table id="noDataTable" class="no-data" style="display: none;">
-    <tbody>
-      <tr>
-        <td>ยังไม่มีข้อมูลทีม</td>
-      </tr>
-    </tbody>
-  </table>
+<!-- ===== ไม่มีข้อมูล ===== -->
+<table id="noDataTable" class="no-data" style="display:none;">
+  <tbody><tr><td>ยังไม่มีข้อมูลทีม</td></tr></tbody>
+</table>
 
+<!-- ===== Firebase SDK ===== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-  <script>
-    // เมื่อ DOM โหลดเสร็จเพิ่มคลาส loaded ให้ body
-    window.addEventListener('DOMContentLoaded', () => {
-      document.body.classList.add('loaded');
-    });
+<script>
+/* ---------- Fade-in after DOM ready ---------- */
+window.addEventListener('DOMContentLoaded',()=>document.body.classList.add('loaded'));
 
-    // Firebase config (ปรับเป็นของคุณ)
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://score-point-a4b6b-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
+/* ---------- Firebase config (ใส่ค่าโปรเจกต์จริง) ---------- */
+const firebaseConfig={
+  apiKey:"YOUR_API_KEY",
+  authDomain:"YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL:"https://score-point-a4b6b-default-rtdb.firebaseio.com",
+  projectId:"YOUR_PROJECT_ID",
+  storageBucket:"YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId:"YOUR_SENDER_ID",
+  appId:"YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+const teamsRef=db.ref("teams");
 
-    // เริ่มต้น Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db       = firebase.database();
-    const teamsRef = db.ref("teams");
+/* ---------- Realtime listener ---------- */
+teamsRef.on("value",snap=>{
+  const data=snap.val()||{};
+  const teams=Object.keys(data).map(k=>({id:k,...data[k]}));
+  renderTable(teams);
+});
 
-    // ฟังข้อมูลเรียลไทม์
-    teamsRef.on("value", snapshot => {
-      const data     = snapshot.val() || {};
-      const teamsArr = Object.keys(data).map(key => ({
-        id:   key,
-        ...data[key]
-      }));
-      renderTable(teamsArr);
-      const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+/* ---------- Render table ---------- */
+function renderTable(teams){
+  const table=document.getElementById("leagueTable");
+  const noDataTbl=document.getElementById("noDataTable");
+  const tbody=document.getElementById("tableBody");
 
-    });
+  if(!teams.length){
+    table.style.display="none";
+    noDataTbl.style.display="table";
+    return;
+  }
 
-    // เรนเดอร์ตาราง พร้อมตั้ง delay ให้แต่ละแถว
-    function renderTable(teams) {
-      const table     = document.getElementById("leagueTable");
-      const noDataTbl = document.getElementById("noDataTable");
-      const tbody     = document.getElementById("tableBody");
+  noDataTbl.style.display="none";
+  table.style.display="table";
+  tbody.innerHTML="";
 
-      if (!teams.length) {
-        table.style.display     = "none";
-        noDataTbl.style.display = "table";
-        return;
-      }
+  /* จัดอันดับ: คะแนน > GD > ได้ */
+  const sorted=[...teams].sort((a,b)=>{
+    const pa=a.win*3+a.draw, pb=b.win*3+b.draw;
+    const gda=(a.gf||0)-(a.ga||0), gdb=(b.gf||0)-(b.ga||0);
+    if(pb!==pa) return pb-pa;
+    if(gdb!==gda) return gdb-gda;
+    return (b.gf||0)-(a.gf||0);
+  });
 
-      noDataTbl.style.display  = "none";
-      table.style.display      = "table";
-      tbody.innerHTML          = "";
+  sorted.forEach((t,idx)=>{
+    const win=t.win||0, draw=t.draw||0, loss=t.loss||0;
+    const gf=t.gf||0, ga=t.ga||0, gd=gf-ga;
+    const pts=win*3+draw;
+    const logo=t.logo?`logos/${t.logo}`:"";
 
-      const isMobile = window.matchMedia("(max-width: 600px)").matches;
+    const tr=document.createElement("tr");
+    tr.style.setProperty('--delay',`${idx*.1}s`);
+    tr.innerHTML=`
+      <td>${idx+1}</td>
+      <td class="team-cell">
+        ${logo?`<img class="logo" src="${logo}" alt="${t.name}" onerror="this.style.display='none'">`:""}
+        <span>${t.name}</span>
+      </td>
+      <td>${win}</td><td>${draw}</td><td>${loss}</td>
+      <td>${gf}</td><td>${ga}</td><td>${gd}</td><td>${pts}</td>`;
+    tbody.appendChild(tr);
+  });
+}
 
-      const sorted = teams.slice().sort((a, b) => {
-        const pa = a.win * 3 + a.draw;
-        const pb = b.win * 3 + b.draw;
-        return pb - pa;
-      });
+/* ---------- Optional: scale down for small screens ---------- */
+function autoScale(){
+  const w = window.innerWidth;
+  const scale = w < 1024 ? w / 1024 : 1;   // e.g. 360px => 0.35
+  document.body.style.transform = `scale(${scale})`;
+  document.body.style.transformOrigin = "top left";
+  /* Fix overflow so user can scroll after scale */
+  document.documentElement.style.width = scale < 1 ? "1024px" : "100%";
+}
+window.addEventListener('DOMContentLoaded',autoScale);
+window.addEventListener('resize',autoScale);
 
-      sorted.forEach((team, idx) => {
-        let name = team.name;
-        if (isMobile && name.length > 10) {
-          name = name.slice(0, 10) + "...";
-        }
-
-        const points   = team.win * 3 + team.draw;
-        const logoPath = team.logo ? `logos/${team.logo}` : "";
-
-        const tr = document.createElement("tr");
-        tr.style.setProperty('--delay', `${idx * 0.1}s`);
-        tr.innerHTML = `
-          <td>${idx + 1}</td>
-          <td class="team-cell">
-            ${logoPath
-              ? `<img class="logo" src="${logoPath}" alt="${team.name}" onerror="this.style.display='none'">`
-              : ""}
-            <span>${name}</span>
-          </td>
-          <td>${team.win}</td>
-          <td>${team.draw}</td>
-          <td>${team.loss}</td>
-          <td>${points}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // ป้องกันรีเฟรชซ้ำหลายครั้งเมื่อเปลี่ยน orientation
-    let hasReloaded = false;
-    window.addEventListener('orientationchange', () => {
-      if (!hasReloaded) {
-        hasReloaded = true;
-        setTimeout(() => window.location.reload(), 100);
-      }
-    });
-  </script>
+/* ---------- One-time reload when orientation changes (kept) ---------- */
+let hasReloaded=false;
+window.addEventListener('orientationchange',()=>{
+  if(!hasReloaded){hasReloaded=true;setTimeout(()=>location.reload(),100);}
+});
+</script>
 </body>
 </html>
