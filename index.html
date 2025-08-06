@@ -122,15 +122,23 @@
 
 
   <!-- ตารางคะแนน -->
-  <table id="leagueTable" style="display:none;">
-    <thead>
-      <tr>
-        <th>อันดับ</th><th>ทีม</th><th>ชนะ</th><th>เสมอ</th>
-        <th>แพ้</th><th>ได้</th><th>เสีย</th><th>ได้-เสีย</th><th>คะแนน</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+<table id="leagueTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>อันดับ</th>
+      <th>ทีม</th>
+      <th>แข่ง</th>       <!-- เพิ่มคอลัมน์นี้ -->
+      <th>ชนะ</th>
+      <th>เสมอ</th>
+      <th>แพ้</th>
+      <th>ได้</th>
+      <th>เสีย</th>
+      <th>ได้-เสีย</th>
+      <th>คะแนน</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
 
   <!-- ไม่มีข้อมูลทีม -->
   <table id="noDataTable" class="no-data" style="display:none;">
@@ -171,56 +179,64 @@
       renderTable(teams);
     });
     function renderTable(teams) {
-      const table     = document.getElementById("leagueTable");
-      const noDataTbl = document.getElementById("noDataTable");
-      const tbody     = document.getElementById("tableBody");
+  const table     = document.getElementById("leagueTable");
+  const noDataTbl = document.getElementById("noDataTable");
+  const tbody     = document.getElementById("tableBody");
 
-      if (!teams.length) {
-        table.style.display    = "none";
-        noDataTbl.style.display = "table";
-        return;
-      }
-      noDataTbl.style.display = "none";
-      table.style.display     = "table";
-      tbody.innerHTML         = "";
+  if (!teams.length) {
+    table.style.display     = "none";
+    noDataTbl.style.display = "table";
+    return;
+  }
 
-      const sorted = [...teams].sort((a,b)=>{
-        const pa  = (a.win||0)*3 + (a.draw||0);
-        const pb  = (b.win||0)*3 + (b.draw||0);
-        const gda = (a.gf||0)-(a.ga||0);
-        const gdb = (b.gf||0)-(b.ga||0);
-        if (pb!==pa) return pb - pa;
-        if (gdb!==gda) return gdb - gda;
-        return (b.gf||0) - (a.gf||0);
-      });
+  noDataTbl.style.display = "none";
+  table.style.display     = "table";
+  tbody.innerHTML         = "";
 
-      sorted.forEach((t, idx) => {
-        const win  = t.win  || 0;
-        const draw = t.draw || 0;
-        const loss = t.loss || 0;
-        const gf   = t.gf   || 0;
-        const ga   = t.ga   || 0;
-        const gd   = gf - ga;
-        const pts  = win*3 + draw;
-        const logo = t.logo ? `logos/${t.logo}` : "";
+  const sorted = [...teams].sort((a, b) => {
+    const pa  = (a.win || 0)*3 + (a.draw || 0);
+    const pb  = (b.win || 0)*3 + (b.draw || 0);
+    const gda = (a.gf  || 0) - (a.ga  || 0);
+    const gdb = (b.gf  || 0) - (b.ga  || 0);
+    if (pb !== pa) return pb - pa;
+    if (gdb !== gda) return gdb - gda;
+    return (b.gf || 0) - (a.gf || 0);
+  });
 
-        const tr = document.createElement("tr");
-        tr.style.setProperty('--delay', `${idx * 0.1}s`);
-        tr.innerHTML = `
-          <td>${idx+1}</td>
-          <td class="team-cell">
-            ${logo
-              ? `<img class="logo" src="${logo}" alt="${t.name}" 
-                   onerror="this.style.display='none'">`
-              : ""}
-            <span>${t.name}</span>
-          </td>
-          <td>${win}</td><td>${draw}</td><td>${loss}</td>
-          <td>${gf}</td><td>${ga}</td><td>${gd}</td><td>${pts}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+  sorted.forEach((t, idx) => {
+    const win    = t.win  || 0;
+    const draw   = t.draw || 0;
+    const loss   = t.loss || 0;
+    const played = win + draw + loss;        // คำนวณจำนวนแข่ง
+    const gf     = t.gf   || 0;
+    const ga     = t.ga   || 0;
+    const gd     = gf - ga;
+    const pts    = win*3 + draw;
+    const logo   = t.logo ? `logos/${t.logo}` : "";
+
+    const tr = document.createElement("tr");
+    tr.style.setProperty('--delay', `${idx * 0.1}s`);
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td class="team-cell">
+        ${logo
+          ? `<img class="logo" src="${logo}" alt="${t.name}" onerror="this.style.display='none'">`
+          : ""}
+        <span>${t.name}</span>
+      </td>
+      <td>${played}</td>               <!-- แทรกคอลัมน์แข่ง -->
+      <td>${win}</td>
+      <td>${draw}</td>
+      <td>${loss}</td>
+      <td>${gf}</td>
+      <td>${ga}</td>
+      <td>${gd}</td>
+      <td>${pts}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 
     // ดึงเฉพาะข้อความล่าสุด (limitToLast=1)
     messagesRef
