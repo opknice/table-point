@@ -1,167 +1,272 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=1024">   <!-- ⬅ บังคับกว้าง 1024px -->
-<title>ตารางคะแนนฟุตบอล (Desktop-only View)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024">
+  <title>ตารางคะแนนฟุตบอล + ข้อความล่าสุด (แสดงเฉพาะวันที่)</title>
 
-<!-- ===== Base Style (no media-queries) ===== -->
-<style>
-/* ---------- Root variables ---------- */
-:root{
-  --row-color-odd:71,110,236;
-  --row-color-even:169,192,255;
-  --row-alpha:0.10;
-}
+  <style>
+    :root {
+      --row-color-odd:   71,110,236;
+      --row-color-even: 169,192,255;
+      --row-alpha:       0.10;
+    }
 
-/* ---------- Fade-in ---------- */
-body{
-  margin:0;padding:20px;
-  background:url('images/logo.png') no-repeat center 20px,
-             url('images/bg.png')   no-repeat center center fixed;
-  background-size:250px auto,cover;
-  font-family:"Segoe UI",sans-serif;
-  color:#fff;
-  opacity:0;
-  transition:opacity .8s ease-in-out;
-}
-body.loaded{opacity:1;}
+    body {
+      margin:0;
+      padding:20px;
+      background:
+        url('images/logo.png') no-repeat center 20px,
+        url('images/bg.png')   no-repeat center center fixed;
+      background-size:250px auto,cover;
+      font-family:"Segoe UI",sans-serif;
+      color:#fff;
+      opacity:0;
+      transition:opacity .8s ease-in-out;
+    }
+    body.loaded { opacity:1; }
 
-/* ---------- Headings ---------- */
-h1{margin:40px 0 20px;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+    h1 {
+      margin:40px 0 20px;
+      text-align:center;
+      text-shadow:0 1px 2px rgba(0,0,0,.6);
+      font-size:2rem;
+    }
 
-/* ---------- Table ---------- */
-table{width:80%;margin:0 auto;border-collapse:collapse;background:transparent;backdrop-filter:blur(4px);}
-th,td{padding:10px;border:none;text-align:center;vertical-align:middle;}
-thead th{padding:6px 8px;background:transparent;color:#fff;font-size:1rem;white-space:nowrap;}
+    table {
+      width:80%;
+      margin:0 auto;
+      border-collapse:collapse;
+      background:transparent;
+      backdrop-filter:blur(4px);
+    }
+    th, td {
+      padding:10px;
+      border:none;
+      text-align:center;
+      vertical-align:middle;
+    }
+    thead th {
+      padding:6px 8px;
+      background:transparent;
+      color:#fff;
+      font-size:1rem;
+    }
 
-td.team-cell{display:flex;align-items:center;gap:8px;padding-left:0;text-align:left;}
-img.logo{max-width:32px;width:100%;height:auto;object-fit:contain;}
+    td.team-cell {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding-left:0;
+      text-align:left;
+    }
+    img.logo {
+      max-width:32px;
+      width:100%;
+      height:auto;
+      object-fit:contain;
+    }
 
-/* ---------- Zebra ---------- */
-#tableBody tr:nth-child(odd){background:rgba(var(--row-color-odd),var(--row-alpha));}
-#tableBody tr:nth-child(even){background:rgba(var(--row-color-even),var(--row-alpha));}
+    #tableBody tr:nth-child(odd)  { background:rgba(var(--row-color-odd),  var(--row-alpha)); }
+    #tableBody tr:nth-child(even) { background:rgba(var(--row-color-even),var(--row-alpha)); }
 
-/* ---------- Slide-in ---------- */
-@keyframes slideInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
-#tableBody tr{opacity:0;transform:translateY(20px);--delay:0s;
-              animation:slideInUp .5s ease-out forwards;animation-delay:var(--delay);}
+    @keyframes slideInUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:none; }
+    }
+    #tableBody tr {
+      opacity:0;
+      transform:translateY(20px);
+      --delay:0s;
+      animation:slideInUp .5s ease-out forwards;
+      animation-delay:var(--delay);
+    }
 
-/* ---------- No-data ---------- */
-.no-data td{color:#fff;font-size:1.1rem;text-shadow:0 1px 2px rgba(0,0,0,.6);}
-</style>
+    .no-data td {
+      color:#fff;
+      font-size:1.1rem;
+      text-shadow:0 1px 2px rgba(0,0,0,.6);
+    }
+
+    #latestMessageSection {
+      width:80%;
+      margin:20px auto;
+      background:rgba(0,0,0,0.3);
+      backdrop-filter:blur(4px);
+      border-radius:8px;
+      padding:16px;
+      text-align:center;
+    }
+    #latestMessageSection h2 {
+      margin:0 0 12px;
+      font-size:1.4rem;
+      color:#fff;
+    }
+    #latestMessage {
+      font-size:1.2rem;
+      line-height:1.5;
+      white-space:pre-wrap;
+      color:#ffeb3b;
+    }
+  </style>
 </head>
 
 <body>
-<h1><br></h1>
+  <h1><br></h1>
 
-<!-- ===== ตารางคะแนน ===== -->
-<table id="leagueTable" style="display:none;">
-  <thead>
-    <tr>
-      <th>อันดับ</th><th>ทีม</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th>
-      <th>ได้</th><th>เสีย</th><th>ได้-เสีย</th><th>คะแนน</th>
-    </tr>
-  </thead>
-  <tbody id="tableBody"></tbody>
-</table>
+    <!-- ข้อความล่าสุด -->
+  <div id="latestMessageSection" style="display:none;">
+    <h2>Var Champion League SS1</h2>
+    <div id="latestMessage"></div>
+  </div>
 
-<!-- ===== ไม่มีข้อมูล ===== -->
-<table id="noDataTable" class="no-data" style="display:none;">
-  <tbody><tr><td>ยังไม่มีข้อมูลทีม</td></tr></tbody>
-</table>
 
-<!-- ===== Firebase SDK ===== -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <!-- ตารางคะแนน -->
+  <table id="leagueTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>อันดับ</th><th>ทีม</th><th>ชนะ</th><th>เสมอ</th>
+        <th>แพ้</th><th>ได้</th><th>เสีย</th><th>ได้-เสีย</th><th>คะแนน</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
 
-<script>
-/* ---------- Fade-in after DOM ready ---------- */
-window.addEventListener('DOMContentLoaded',()=>document.body.classList.add('loaded'));
+  <!-- ไม่มีข้อมูลทีม -->
+  <table id="noDataTable" class="no-data" style="display:none;">
+    <tbody><tr><td>ยังไม่มีข้อมูลทีม</td></tr></tbody>
+  </table>
 
-/* ---------- Firebase config (ใส่ค่าโปรเจกต์จริง) ---------- */
-const firebaseConfig={
-  apiKey:"YOUR_API_KEY",
-  authDomain:"YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL:"https://score-point-a4b6b-default-rtdb.firebaseio.com",
-  projectId:"YOUR_PROJECT_ID",
-  storageBucket:"YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId:"YOUR_SENDER_ID",
-  appId:"YOUR_APP_ID"
-};
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
-const teamsRef=db.ref("teams");
 
-/* ---------- Realtime listener ---------- */
-teamsRef.on("value",snap=>{
-  const data=snap.val()||{};
-  const teams=Object.keys(data).map(k=>({id:k,...data[k]}));
-  renderTable(teams);
-});
 
-/* ---------- Render table ---------- */
-function renderTable(teams){
-  const table=document.getElementById("leagueTable");
-  const noDataTbl=document.getElementById("noDataTable");
-  const tbody=document.getElementById("tableBody");
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-  if(!teams.length){
-    table.style.display="none";
-    noDataTbl.style.display="table";
-    return;
-  }
+  <script>
+    window.addEventListener('DOMContentLoaded', ()=>{
+      document.body.classList.add('loaded');
+    });
 
-  noDataTbl.style.display="none";
-  table.style.display="table";
-  tbody.innerHTML="";
+    // ตั้งค่า Firebase
+    const firebaseConfig = {
+      apiKey:        "YOUR_API_KEY",
+      authDomain:    "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL:   "https://score-point-a4b6b-default-rtdb.firebaseio.com",
+      projectId:     "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId:"YOUR_SENDER_ID",
+      appId:         "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-  /* จัดอันดับ: คะแนน > GD > ได้ */
-  const sorted=[...teams].sort((a,b)=>{
-    const pa=a.win*3+a.draw, pb=b.win*3+b.draw;
-    const gda=(a.gf||0)-(a.ga||0), gdb=(b.gf||0)-(b.ga||0);
-    if(pb!==pa) return pb-pa;
-    if(gdb!==gda) return gdb-gda;
-    return (b.gf||0)-(a.gf||0);
-  });
+    const db           = firebase.database();
+    const teamsRef     = db.ref("teams");
+    const messagesRef  = db.ref("messages");
 
-  sorted.forEach((t,idx)=>{
-    const win=t.win||0, draw=t.draw||0, loss=t.loss||0;
-    const gf=t.gf||0, ga=t.ga||0, gd=gf-ga;
-    const pts=win*3+draw;
-    const logo=t.logo?`logos/${t.logo}`:"";
+    // เรนเดอร์ตารางทีม
+    teamsRef.on("value", snap => {
+      const data  = snap.val() || {};
+      const teams = Object.keys(data).map(k=>({id:k,...data[k]}));
+      renderTable(teams);
+    });
+    function renderTable(teams) {
+      const table     = document.getElementById("leagueTable");
+      const noDataTbl = document.getElementById("noDataTable");
+      const tbody     = document.getElementById("tableBody");
 
-    const tr=document.createElement("tr");
-    tr.style.setProperty('--delay',`${idx*.1}s`);
-    tr.innerHTML=`
-      <td>${idx+1}</td>
-      <td class="team-cell">
-        ${logo?`<img class="logo" src="${logo}" alt="${t.name}" onerror="this.style.display='none'">`:""}
-        <span>${t.name}</span>
-      </td>
-      <td>${win}</td><td>${draw}</td><td>${loss}</td>
-      <td>${gf}</td><td>${ga}</td><td>${gd}</td><td>${pts}</td>`;
-    tbody.appendChild(tr);
-  });
-}
+      if (!teams.length) {
+        table.style.display    = "none";
+        noDataTbl.style.display = "table";
+        return;
+      }
+      noDataTbl.style.display = "none";
+      table.style.display     = "table";
+      tbody.innerHTML         = "";
 
-/* ---------- Optional: scale down for small screens ---------- */
-function autoScale(){
-  const w = window.innerWidth;
-  const scale = w < 1024 ? w / 1024 : 1;   // e.g. 360px => 0.35
-  document.body.style.transform = `scale(${scale})`;
-  document.body.style.transformOrigin = "top left";
-  /* Fix overflow so user can scroll after scale */
-  document.documentElement.style.width = scale < 1 ? "1024px" : "100%";
-}
-window.addEventListener('DOMContentLoaded',autoScale);
-window.addEventListener('resize',autoScale);
+      const sorted = [...teams].sort((a,b)=>{
+        const pa  = (a.win||0)*3 + (a.draw||0);
+        const pb  = (b.win||0)*3 + (b.draw||0);
+        const gda = (a.gf||0)-(a.ga||0);
+        const gdb = (b.gf||0)-(b.ga||0);
+        if (pb!==pa) return pb - pa;
+        if (gdb!==gda) return gdb - gda;
+        return (b.gf||0) - (a.gf||0);
+      });
 
-/* ---------- One-time reload when orientation changes (kept) ---------- */
-let hasReloaded=false;
-window.addEventListener('orientationchange',()=>{
-  if(!hasReloaded){hasReloaded=true;setTimeout(()=>location.reload(),100);}
-});
-</script>
+      sorted.forEach((t, idx) => {
+        const win  = t.win  || 0;
+        const draw = t.draw || 0;
+        const loss = t.loss || 0;
+        const gf   = t.gf   || 0;
+        const ga   = t.ga   || 0;
+        const gd   = gf - ga;
+        const pts  = win*3 + draw;
+        const logo = t.logo ? `logos/${t.logo}` : "";
+
+        const tr = document.createElement("tr");
+        tr.style.setProperty('--delay', `${idx * 0.1}s`);
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td class="team-cell">
+            ${logo
+              ? `<img class="logo" src="${logo}" alt="${t.name}" 
+                   onerror="this.style.display='none'">`
+              : ""}
+            <span>${t.name}</span>
+          </td>
+          <td>${win}</td><td>${draw}</td><td>${loss}</td>
+          <td>${gf}</td><td>${ga}</td><td>${gd}</td><td>${pts}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ดึงเฉพาะข้อความล่าสุด (limitToLast=1)
+    messagesRef
+      .orderByChild("timestamp")
+      .limitToLast(1)
+      .on("value", snap => {
+        const data = snap.val();
+        renderLatestMessage(data);
+      });
+
+    function renderLatestMessage(data) {
+      const section   = document.getElementById("latestMessageSection");
+      const container = document.getElementById("latestMessage");
+
+      if (!data) {
+        section.style.display = "none";
+        return;
+      }
+      const key = Object.keys(data)[0];
+      const msg = data[key];
+      // แสดงเฉพาะวันที่
+      const dateOnly = new Date(msg.timestamp)
+                        .toLocaleDateString('th-TH');
+      container.textContent = `${msg.text} Updated [${dateOnly}]`;
+      section.style.display = "block";
+    }
+
+    // ปรับ scale สำหรับหน้าจอเล็ก
+    function autoScale() {
+      const w     = window.innerWidth;
+      const scale = w < 1024 ? w / 1024 : 1;
+      document.body.style.transform       = `scale(${scale})`;
+      document.body.style.transformOrigin = "top left";
+      document.documentElement.style.width= scale < 1 ? "1024px" : "100%";
+    }
+    window.addEventListener('DOMContentLoaded', autoScale);
+    window.addEventListener('resize', autoScale);
+
+    // รีโหลดหน้าเมื่อเปลี่ยน orientation (ครั้งเดียว)
+    let reloaded = false;
+    window.addEventListener('orientationchange', ()=>{
+      if (!reloaded) {
+        reloaded = true;
+        setTimeout(()=>location.reload(),100);
+      }
+    });
+  </script>
 </body>
 </html>
