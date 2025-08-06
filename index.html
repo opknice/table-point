@@ -116,7 +116,7 @@
 
     <!-- ข้อความล่าสุด -->
   <div id="latestMessageSection" style="display:none;">
-    <h2>Var Champion League SS1</h2>
+    <h2>VAR Champions League SS1</h2>
     <div id="latestMessage"></div>
   </div>
 
@@ -241,6 +241,7 @@
       }
       const key = Object.keys(data)[0];
       const msg = data[key];
+      
       // แสดงเฉพาะวันที่
       const dateOnly = new Date(msg.timestamp)
                         .toLocaleDateString('th-TH');
